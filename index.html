@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.IO Chat Test</title>
+    <script src="https://cdn.socket.io/4.5.3/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: space-between;
+            height: 100vh;
+            margin: 0;
+        }
+        .client {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            padding: 10px;
+        }
+        .input-area {
+            display: flex;
+        }
+        input {
+            flex: 1;
+            padding: 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="client" id="client1">
+        <h2>Client 1</h2>
+        <div class="messages" id="messages1"></div>
+        <div class="input-area">
+            <input type="text" id="input1" placeholder="Type a message...">
+            <button onclick="sendMessage(1)">Send</button>
+        </div>
+    </div>
+    <div class="client" id="client2">
+        <h2>Client 2</h2>
+        <div class="messages" id="messages2"></div>
+        <div class="input-area">
+            <input type="text" id="input2" placeholder="Type a message...">
+            <button onclick="sendMessage(2)">Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Connecting to Socket.IO server
+        const socket1 = io('http://localhost:30885');
+        const socket2 = io('http://localhost:30885');
+
+        // Function to display messages
+        function displayMessage(client, message) {
+            const messagesDiv = document.getElementById(`messages${client === 1 ? 2 : 1}`);
+            const newMessage = document.createElement('div');
+            newMessage.textContent = message;
+            messagesDiv.appendChild(newMessage);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Sending messages from clients
+        function sendMessage(client) {
+            const input = document.getElementById(`input${client}`);
+            const message = input.value;
+            if (message.trim() === '') return;
+
+            const socket = client === 1 ? socket1 : socket2;
+            socket.emit('chat message', { from: `Client ${client}`, message });
+            displayMessage(client, `Me: ${message}`); // Own message display
+            input.value = '';
+        }
+
+        // Receiving messages for both clients
+        socket1.on('chat message', (data) => {
+            displayMessage(1, `${data.from}: ${data.message}`);
+        });
+
+        socket2.on('chat message', (data) => {
+            displayMessage(2, `${data.from}: ${data.message}`);
+        });
+
+        // Listening for messages from the server
+        socket1.on('connect', () => {
+            console.log('Client 1 connected');
+        });
+
+        socket2.on('connect', () => {
+            console.log('Client 2 connected');
+        });
+
+        socket1.on('disconnect', () => {
+            console.log('Client 1 disconnected');
+        });
+
+        socket2.on('disconnect', () => {
+            console.log('Client 2 disconnected');
+        });
+    </script>
+</body>
+</html>
